@@ -1,5 +1,4 @@
 #include <stdio.h>
-//#include <stdlib.h>
 #include <string.h>
 
 int main(int argc, char* argv[])
@@ -36,14 +35,19 @@ int main(int argc, char* argv[])
     for (int i = 0; i < BYTESIZE; i++) freq[i] = 0;
     
     // loop through the file and increase the array at the same index of the chars ascii value
-    int index;
+    int index, total;
     do{
         index = fgetc(file);
         freq[index]++;
+        total++;
     } while(index != EOF);
+    total--; // for EOF
     
     fclose(file);
-    
     for (int i = 0; i < BYTESIZE; i++) if (freq[i] > 0) printf("%c = %d\n", i, freq[i]);
+    printf("total = %d", total);
+    
+    // build the tree...
+    
     return 0;
 }
