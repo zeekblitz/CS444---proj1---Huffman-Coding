@@ -2,134 +2,143 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Node 
-typedef struct node { 
-    int data; 
-  
-    // Lower values indicate higher priority 
-    int priority; 
-  
-    struct node* next; 
-  
-} Node; 
-  
-// Function to Create A New Node 
-Node* newNode(int d, int p) 
-{ 
-    Node* temp = (Node*)malloc(sizeof(Node)); 
-    temp->data = d; 
-    temp->priority = p; 
-    temp->next = NULL; 
-  
-    return temp; 
-} 
-  
-// Return the value at head 
-int peek(Node** head) 
-{ 
-    return (*head)->data; 
-} 
-  
-// Removes the element with the 
-// highest priority from the list 
-void pop(Node** head) 
-{ 
-    Node* temp = *head; 
-    (*head) = (*head)->next; 
-    free(temp); 
-} 
-  
-// Function to push according to priority 
-void push(Node** head, int d, int p) 
-{ 
-    Node* start = (*head); 
-  
-    // Create new Node 
-    Node* temp = newNode(d, p); 
-  
-    // Special Case: The head of list has lesser 
-    // priority than new node. So insert new 
-    // node before head node and change head node. 
-    if ((*head)->priority > p) { 
-  
-        // Insert New Node before head 
-        temp->next = *head; 
-        (*head) = temp; 
-    } 
-    else { 
-  
-        // Traverse the list and find a 
-        // position to insert new node 
-        while (start->next != NULL && 
-            start->next->priority < p) { 
-            start = start->next; 
-        } 
-  
-        // Either at the ends of the list 
-        // or at required position 
-        temp->next = start->next; 
-        start->next = temp; 
-    } 
-} 
-  
-// Function to check if list is empty 
-int isEmpty(Node** head) 
-{ 
-    return (*head) == NULL; 
+// Node
+typedef struct node{
+    int data;
+    int priority; // Lower values indicate higher priority
+    struct node *next;
+    struct node *left;
+    struct node *right;
+} Node;
+
+// Function to Create A New Node
+Node *newNode(int d, int p){
+    Node *temp = (Node *)malloc(sizeof(Node));
+    temp->data = d;
+    temp->priority = p;
+    temp->next = NULL;
+    temp->left = NULL;
+    temp->right = NULL;
+
+    return temp;
 }
 
-int main(int argc, char* argv[])
-{
-    FILE* file;
-    char* inFile, *outFile;
-    const int BYTESIZE = 256;
+// Return the value at head
+int peek(Node **head){
+    return (*head)->data;
+}
+
+// Removes the element with the
+// highest priority from the list
+void pop(Node **head){
+    Node *temp = *head;
+    (*head) = (*head)->next;
+    free(temp);
+}
+
+// Function to push according to priority
+void push(Node **head, int d, int p){
+    Node *start = (*head);
+
+    // Create new Node
+    Node *temp = newNode(d, p);
+
+    // Special Case: The head of list has lesser
+    // priority than new node. So insert new
+    // node before head node and change head node.
+    if ((*head)->priority > p){
+
+        // Insert New Node before head
+        temp->next = *head;
+        (*head) = temp;
+    }
+    else{
+
+        // Traverse the list and find a position to insert new node
+        while (start->next != NULL && start->next->priority < p){
+            start = start->next;
+        }
+
+        // Either at the ends of the list
+        // or at required position
+        temp->next = start->next;
+        start->next = temp;
+    }
+}
+
+// Function to check if list is empty
+int isEmpty(Node **head){
+    return (*head) == NULL;
+}
+
+Node* listToTree(Node **head){
+    Node* start = (*head);
+    // create a new empty node the will hold the two nodes
+    // and their combined priority value
+    Node *parent = newNode(NULL, NULL);
     
+    // assign the current node (start) to the left of the new parent node
+    parent->left = start;
+    // assign the next node to the right of parent
+    if (start->next != NULL) parent->right = start->next;
+    // assign the sum of these two nodes priority value 
+    // to the priority value of the new parent
+    parent->priority = start->priority + start->next->priority;
+    
+    // delete the link from the first node to the second node
+    start->next = NULL;
+    
+    // point the parent to the next (third) node of the list
+    parent->next = start->next->next;
+    // delete the second link
+    start->next->next = NULL;
+    
+    // sort the parent node into the pq list
+    // the parent node is currently the first node in the list
+    
+    
+}
+
+int main(int argc, char *argv[]){
+    FILE *file;
+    char *inFile, *outFile;
+    const int BYTESIZE = 256;
+
     // defaults
     inFile = "defaultIn.txt";
     outFile = "DefaultOut.txt";
-    
+
     for (int i = 1; i < argc; i++){
-        if (strcmp(argv[i], "-i") == 0)
-        {
-          inFile = argv[++i];
-        }
-        else if (strcmp(argv[i], "-o") == 0)
-        {
-          outFile = argv[++i];
-        }
+        if (strcmp(argv[i], "-i") == 0) inFile = argv[++i];
+        else if (strcmp(argv[i], "-o") == 0) outFile = argv[++i];
     }
-    //printf("inFile: %s\noutFile: %s\n", inFile, outFile);
-    
+    // printf("inFile: %s\noutFile: %s\n", inFile, outFile);
+
     // try to open an existing file to read in
     file = fopen(inFile, "r");
     if (file == NULL){
         printf("%s does not exist.", inFile);
         return -1;
     }
-    
+
     // create an int array of a bytesize (256) and initialize it with 0's
     int freq[BYTESIZE];
     for (int i = 0; i < BYTESIZE; i++) freq[i] = 0;
-    
+
     // loop through the file and increase the array at the same index of the chars ascii value
-    int index, total;
+    int index;
     do{
         index = fgetc(file);
         freq[index]++;
-        total++;
-    } while(index != EOF);
-    total--; // for EOF
-    
+    }while (index != EOF);
+
     fclose(file);
-    //for (int i = 0; i < BYTESIZE; i++) if (freq[i] > 0) printf("%c = %d\n", i, freq[i]);
-    //printf("total = %d\n", total);
-    
-    // build the tree...
-    
+    // for (int i = 0; i < BYTESIZE; i++) if (freq[i] > 0) printf("%c = %d\n", i, freq[i]);
+
     // make a priority queue to hold and sort the chars
-    Node* pq;
-    
-    // find the first element that has a value 
+    Node *pq;
+
+    // find the first element that has a value
     // and assign it to the first node in the pq
     index = 0;
     do{
@@ -139,16 +148,22 @@ int main(int argc, char* argv[])
         }
         index++;
     }while (index < BYTESIZE);
-    
-    while(index < BYTESIZE){
+
+    // assign the rest of the chars to the pq
+    while (index < BYTESIZE){
         index++;
         if (freq[index] > 0) push(&pq, index, freq[index]);
     }
     
-    while (!isEmpty(&pq)) { 
-        printf("%c ", peek(&pq)); 
-        pop(&pq); 
+    /*
+    while (!isEmpty(&pq)){
+        printf("%c ", peek(&pq));
+        pop(&pq);
     }
+    */
+    
+    // convert the priority queue into a binary tree
+    pq = listToTree(&pq);
     
     return 0;
 }
