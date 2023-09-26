@@ -12,7 +12,7 @@ typedef struct node{
 } Node;
 
 // Function to Create A New Node
-Node *newNode(int d, int p){
+Node* newNode(int d, int p){
     Node *temp = (Node *)malloc(sizeof(Node));
     temp->data = d;
     temp->priority = p;
@@ -73,30 +73,56 @@ int isEmpty(Node **head){
 
 Node* listToTree(Node **head){
     Node* start = (*head);
+    Node* second = start->next;
     // create a new empty node the will hold the two nodes
     // and their combined priority value
-    Node *parent = newNode(NULL, NULL);
+    int d = 0;
+    int p = start->priority + second->priority;
+    Node* parent = newNode(d, p);
     
-    // assign the current node (start) to the left of the new parent node
+    // assign the start node to the left of the new parent node
     parent->left = start;
-    // assign the next node to the right of parent
-    if (start->next != NULL) parent->right = start->next;
-    // assign the sum of these two nodes priority value 
-    // to the priority value of the new parent
-    parent->priority = start->priority + start->next->priority;
-    
-    // delete the link from the first node to the second node
-    start->next = NULL;
+    // assign the second node to the right of parent
+    if (second != NULL) parent->right = second;
     
     // point the parent to the next (third) node of the list
-    parent->next = start->next->next;
+    if (second->next != NULL) parent->next = second->next;
+    // delete the link from the first node to the second node
+    start->next = NULL;
     // delete the second link
-    start->next->next = NULL;
+    second->next = NULL;
     
     // sort the parent node into the pq list
-    // the parent node is currently the first node in the list
+    Node* first;
+    if (parent->next != NULL && parent->next->priority < p){
+        // the parent node is currently the first node in the list
+        start = parent;
+        // the next node will be the new head of the list
+        first = start->next;
+        while (start->next != NULL && start->next->priority < p){
+                start = start->next;
+        }
+        // Either at the ends of the list
+        // or at required position
+        parent->next = start->next;
+        start->next = parent;
+    }
+    else first = parent;
     
+    // if the next node in the list is not null,
+    // call the function again with the new starting node
+    if (first->next != NULL) return listToTree(&first);
     
+    // else the tree is complete,
+    // so return the parent node as the first node of the tree
+    return first;
+}
+
+void printTree(Node* root) {
+    if (root==NULL) return;
+    if (root->data != 0) printf("%c = %d\n", root->data, root->priority);
+    printTree(root->left);
+    printTree(root->right);
 }
 
 int main(int argc, char *argv[]){
@@ -133,7 +159,7 @@ int main(int argc, char *argv[]){
     }while (index != EOF);
 
     fclose(file);
-    // for (int i = 0; i < BYTESIZE; i++) if (freq[i] > 0) printf("%c = %d\n", i, freq[i]);
+    //for (int i = 0; i < BYTESIZE; i++) if (freq[i] > 0) printf("%c = %d\n", i, freq[i]);
 
     // make a priority queue to hold and sort the chars
     Node *pq;
@@ -164,6 +190,8 @@ int main(int argc, char *argv[]){
     
     // convert the priority queue into a binary tree
     pq = listToTree(&pq);
+    
+    printTree(pq);
     
     return 0;
 }
