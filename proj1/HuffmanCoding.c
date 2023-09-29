@@ -71,6 +71,17 @@ int isEmpty(Node **head){
     return (*head) == NULL;
 }
 
+void printListSize(Node* root){
+    if (root == NULL) return;
+    int size = 0;
+    while (root != NULL){
+        size++;
+        root = root->next;
+    }
+    printf("size = %d\n", size);
+}
+
+// function to convert the list to a Huffman tree
 Node* listToTree(Node **head){
     Node* start = (*head);
     Node* second = start->next;
@@ -109,6 +120,9 @@ Node* listToTree(Node **head){
     }
     else first = parent;
     
+    // print the length of the list
+    //printListSize(first);
+
     // if the next node in the list is not null,
     // call the function again with the new starting node
     if (first->next != NULL) return listToTree(&first);
@@ -120,7 +134,7 @@ Node* listToTree(Node **head){
 
 void printTree(Node* root) {
     if (root==NULL) return;
-    if (root->data != 0) printf("%c = %d\n", root->data, root->priority);
+    if (root->data != 0) printf("%d = %d\n", root->data, root->priority);
     printTree(root->left);
     printTree(root->right);
 }
