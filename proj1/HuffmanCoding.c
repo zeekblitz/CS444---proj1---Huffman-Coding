@@ -1,6 +1,26 @@
+// todo: make the program faster by using an array of arrays to store the codes in
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+typedef struct byteBuffer{
+    unsigned char buffer;
+    int count;
+} ByteBuffer;
+
+void newBuffer(ByteBuffer new){
+    new.buffer = 0;
+    new.count = 0;
+}
+
+void flushBuffer(ByteBuffer* bb){
+    if (bb->count > 0){
+        while(bb->count != 8){
+            bb->buffer = (bb->buffer << 1) | 0;
+            bb->count++;
+        }
+    }
+}
 
 // Node
 typedef struct node{
@@ -23,19 +43,6 @@ Node* newNode(int d, int p){
     return temp;
 }
 
-// Return the value at head
-int peek(Node **head){
-    return (*head)->data;
-}
-
-// Removes the element with the
-// highest priority from the list
-void pop(Node **head){
-    Node *temp = *head;
-    (*head) = (*head)->next;
-    free(temp);
-}
-
 // Function to push according to priority
 void push(Node **head, int d, int p){
     Node *start = (*head);
@@ -55,7 +62,7 @@ void push(Node **head, int d, int p){
     else{
 
         // Traverse the list and find a position to insert new node
-        while (start->next != NULL && start->next->priority < p){
+        while (start->next && start->next->priority < p){
             start = start->next;
         }
 
@@ -64,21 +71,6 @@ void push(Node **head, int d, int p){
         temp->next = start->next;
         start->next = temp;
     }
-}
-
-// Function to check if list is empty
-int isEmpty(Node **head){
-    return (*head) == NULL;
-}
-
-void printListSize(Node* root){
-    if (root == NULL) return;
-    int size = 0;
-    while (root != NULL){
-        size++;
-        root = root->next;
-    }
-    printf("size = %d\n", size);
 }
 
 // function to convert the list to a Huffman tree
@@ -94,10 +86,10 @@ Node* listToTree(Node **head){
     // assign the start node to the left of the new parent node
     parent->left = start;
     // assign the second node to the right of parent
-    if (second != NULL) parent->right = second;
+    if (second) parent->right = second;
     
     // point the parent to the next (third) node of the list
-    if (second->next != NULL) parent->next = second->next;
+    if (second->next) parent->next = second->next;
     // delete the link from the first node to the second node
     start->next = NULL;
     // delete the second link
@@ -105,12 +97,12 @@ Node* listToTree(Node **head){
     
     // sort the parent node into the pq list
     Node* first;
-    if (parent->next != NULL && parent->next->priority < p){
+    if (parent->next && parent->next->priority < p){
         // the parent node is currently the first node in the list
         start = parent;
         // the next node will be the new head of the list
         first = start->next;
-        while (start->next != NULL && start->next->priority < p){
+        while (start->next && start->next->priority < p){
                 start = start->next;
         }
         // Either at the ends of the list
@@ -119,9 +111,6 @@ Node* listToTree(Node **head){
         start->next = parent;
     }
     else first = parent;
-    
-    // print the length of the list
-    //printListSize(first);
 
     // if the next node in the list is not null,
     // call the function again with the new starting node
@@ -132,32 +121,60 @@ Node* listToTree(Node **head){
     return first;
 }
 
-void printTree(Node* root) {
-    if (root==NULL) return;
-    if (root->data != 0) printf("%d = %d\n", root->data, root->priority);
-    printTree(root->left);
-    printTree(root->right);
+void findChar(Node* root, char find, int arr[], int top, FILE* ofile, ByteBuffer *bb) {
+    if (root->left) {
+        arr[top] = 1;
+        findChar(root->left, find, arr, top + 1, ofile, bb);
+    }
+
+    if (root->right) {
+        arr[top] = 0;
+        findChar(root->right, find, arr, top + 1, ofile, bb);
+    }
+
+    if ((!root->left && !root->right) && root->data == find) {
+        /*
+        printf("%d = %d: ", root->data, root->priority);
+        for (int i = 0; i < top; ++i) {
+            printf("%d", arr[i]);
+        }
+        printf("\n");
+        */
+        for (int i = 0; i < top; i++){
+            // write those bits to the buffer
+            bb->buffer = (bb->buffer << 1) | arr[i];
+            bb->count++;
+            // if the buffer has 8 bits, write the byte to the file
+            if (bb->count == 8){
+                fwrite(&(bb->buffer), 1, 1, ofile);
+                // reset the buffer
+                bb->buffer = 0;
+                bb->count = 0;
+            }
+        }
+        
+        return;
+    }
 }
 
 int main(int argc, char *argv[]){
-    FILE *file;
+    FILE *file, *ofile;
     char *inFile, *outFile;
     const int BYTESIZE = 256;
 
     // defaults
-    inFile = "defaultIn.txt";
-    outFile = "DefaultOut.txt";
+    inFile = "completeShakespeare.txt";
+    outFile = "huffman.out";
 
     for (int i = 1; i < argc; i++){
         if (strcmp(argv[i], "-i") == 0) inFile = argv[++i];
         else if (strcmp(argv[i], "-o") == 0) outFile = argv[++i];
     }
-    // printf("inFile: %s\noutFile: %s\n", inFile, outFile);
 
     // try to open an existing file to read in
     file = fopen(inFile, "r");
-    if (file == NULL){
-        printf("%s does not exist.", inFile);
+    if (!file){
+        printf("%s does not exist.\n", inFile);
         return -1;
     }
 
@@ -173,7 +190,7 @@ int main(int argc, char *argv[]){
     }while (index != EOF);
 
     fclose(file);
-    //for (int i = 0; i < BYTESIZE; i++) if (freq[i] > 0) printf("%c = %d\n", i, freq[i]);
+    for (int i = 0; i <= BYTESIZE; i++) if (freq[i] > 0) printf("%d = %d\n", i, freq[i]);
 
     // make a priority queue to hold and sort the chars
     Node *pq;
@@ -195,17 +212,34 @@ int main(int argc, char *argv[]){
         if (freq[index] > 0) push(&pq, index, freq[index]);
     }
     
-    /*
-    while (!isEmpty(&pq)){
-        printf("%c ", peek(&pq));
-        pop(&pq);
-    }
-    */
-    
     // convert the priority queue into a binary tree
-    pq = listToTree(&pq);
+    pq = listToTree(&pq);    
     
-    printTree(pq);
+    // open the file again
+    file = fopen(inFile, "r");
+    
+    // open a new file to write to in binary
+    ofile = fopen(outFile, "wb");
+    
+    static int bin[100];
+    char ch;
+    ByteBuffer bb;
+    newBuffer(bb);
+    do{
+        // read in each char
+        ch = fgetc(file);
+        
+        // search for it along the tree
+        findChar(pq, ch, bin, 0, ofile, &bb);
+    } while(ch != EOF);
+    
+    // check for any remaining bits and add 0's to the end to make a full byte
+    flushBuffer(&bb); 
+    //write the last byte to the file
+    fwrite(&(bb.buffer), 1, 1, ofile);
+    //close both files
+    fclose(file);
+    fclose(ofile);
     
     return 0;
 }
