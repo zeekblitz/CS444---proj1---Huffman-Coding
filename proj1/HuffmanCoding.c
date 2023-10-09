@@ -2,16 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+//#define BYTESIZE 256
+
 typedef struct byteBuffer{
     unsigned char buffer;
     int count;
 } ByteBuffer;
-
-// create a new bytebuffer
-void newBuffer(ByteBuffer new){
-    new.buffer = 0;
-    new.count = 0;
-}
 
 // finish the file
 void flushBuffer(ByteBuffer* bb){
@@ -145,24 +141,25 @@ void findChar(Node* root, char find, int arr[], int top, FILE* ofile, ByteBuffer
                 bb->buffer = 0;
                 bb->count = 0;
             }
-        }        
+        }
         return;
     }
 }
 
-void printTree(Node* root, int arr[], int top) {
+void printTree(Node* root, int row[], int col[], int top) {
     if (root->left) {
-        arr[top] = 1;
-        printTree(root->left, arr, top + 1);
+        col[top] = 1;
+        printTree(root->left, row, col, top + 1);
     }
     if (root->right) {
-        arr[top] = 0;
-        printTree(root->right, arr, top + 1);
+        col[top] = 0;
+        printTree(root->right, row, col, top + 1);
     }
     if (!root->left && !root->right) {
         printf("%3d = %8d: ", root->data, root->priority);
+        
         for (int i = 0; i < top; ++i) {
-            printf("%d", arr[i]);
+            printf("%d", col[i]);
         }
         printf("\n");
     }
@@ -194,11 +191,11 @@ int main(int argc, char *argv[]){
     for (int i = 0; i < BYTESIZE; i++) freq[i] = 0;
 
     // loop through the file and increase the array at the same index of the chars ascii value
-    int index;
-    do{
-        index = fgetc(file);
+    int index = fgetc(file);
+    while (index != EOF) {
         freq[index]++;
-    }while (index != EOF);
+        index = fgetc(file);
+    }
 
     fclose(file);
     //for (int i = 0; i <= BYTESIZE; i++) if (freq[i] > 0) printf("%d = %d\n", i, freq[i]);
@@ -227,8 +224,9 @@ int main(int argc, char *argv[]){
     pq = listToTree(&pq);
 
     // print the tree with the codes
-    int arr[100];
-    printTree(pq, arr, 0);
+    
+    int row[BYTESIZE], col[128];
+    printTree(pq, row, col, 0);
     
     // open the file again
     file = fopen(inFile, "r");
@@ -239,7 +237,6 @@ int main(int argc, char *argv[]){
     static int bin[100];
     char ch;
     ByteBuffer bb;
-    newBuffer(bb);
     do{
         // read in each char
         ch = fgetc(file);
