@@ -74,7 +74,7 @@ void push(Node **head, int d, int p){
 Node* listToTree(Node **head){
     Node* start = (*head);
     Node* second = start->next;
-    // create a new empty node the will hold the two nodes
+    // create a new empty node that will hold the two nodes
     // and their combined priority value
     int d = 0;
     int p = start->priority + second->priority;
