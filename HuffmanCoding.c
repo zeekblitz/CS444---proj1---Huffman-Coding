@@ -118,34 +118,6 @@ Node* listToTree(Node **head){
     return first;
 }
 
-void findChar(Node* root, char find, int arr[], int top, FILE* ofile, ByteBuffer *bb) {
-    if (root->left) {
-        arr[top] = 1;
-        findChar(root->left, find, arr, top + 1, ofile, bb);
-    }
-
-    if (root->right) {
-        arr[top] = 0;
-        findChar(root->right, find, arr, top + 1, ofile, bb);
-    }
-
-    if ((!root->left && !root->right) && root->data == find) {
-        for (int i = 0; i < top; i++){
-            // write those bits to the buffer
-            bb->buffer = (bb->buffer << 1) | arr[i];
-            bb->count++;
-            // if the buffer has 8 bits, write the byte to the file
-            if (bb->count == 8){
-                fwrite(&(bb->buffer), 1, 1, ofile);
-                // reset the buffer
-                bb->buffer = 0;
-                bb->count = 0;
-            }
-        }
-        return;
-    }
-}
-
 void printTree(Node* root, int row[], int col[], int top) {
     if (root->left) {
         col[top] = 1;
@@ -162,6 +134,31 @@ void printTree(Node* root, int row[], int col[], int top) {
             printf("%d", col[i]);
         }
         printf("\n");
+    }
+}
+
+void buildLookupTable(Node* root, int** table, int index, int row[], int top){
+    if (root->left) {
+        row[top] = 1;
+        buildLookupTable(root->left, table, index, row, top + 1);
+    }
+
+    if (root->right) {
+        row[top] = 0;
+        buildLookupTable(root->right, table, index, row, top + 1);
+    }
+
+    if ((!root->left && !root->right) && root->data == index) {
+        *table = (int*)malloc(sizeof(int) * (top + 1));
+        
+        // store the length of the array in the first element
+        (*table)[0] = top + 1;
+
+        for (int i = 1; i < top; i++){
+            (*table)[i] = row[i];
+        }
+
+        return;
     }
 }
 
@@ -192,12 +189,14 @@ int main(int argc, char *argv[]){
 
     // loop through the file and increase the array at the same index of the chars ascii value
     int index = fgetc(file);
+    printf("reading in text file...\n");
     while (index != EOF) {
         freq[index]++;
         index = fgetc(file);
     }
 
     fclose(file);
+    printf("done.\n");
     //for (int i = 0; i <= BYTESIZE; i++) if (freq[i] > 0) printf("%d = %d\n", i, freq[i]);
 
     // make a priority queue to hold and sort the chars
@@ -225,24 +224,42 @@ int main(int argc, char *argv[]){
 
     // print the tree with the codes
     
-    int row[BYTESIZE], col[128];
-    printTree(pq, row, col, 0);
+    //int row[BYTESIZE], col[128];
+    //printTree(pq, row, col, 0);
+
+    // build the lookup table to store the codes for each ascii char
+    int** table = (int**)malloc(sizeof(int) * BYTESIZE);
+    static int row[100];
+    for (int i = 0; i < BYTESIZE; i++){
+        buildLookupTable(pq, &table[i], i, row, 0);
+    }
     
     // open the file again
     file = fopen(inFile, "r");
     
     // open a new file to write to in binary
     ofile = fopen(outFile, "wb");
-    
+
     static int bin[100];
-    char ch;
+    int ch;
     ByteBuffer bb;
+    printf("reading in file again, and writing out new file...\n");
     do{
         // read in each char
         ch = fgetc(file);
-        
-        // search for it along the tree
-        findChar(pq, ch, bin, 0, ofile, &bb);
+
+        for (int i = 1; i < table[ch][0]; i++){
+            // write those bits to the buffer
+            bb.buffer = (bb.buffer << 1) | table[ch][i];
+            bb.count++;
+            // if the buffer has 8 bits, write the byte to the file
+            if (bb.count == 8){
+                fwrite(&(bb.buffer), 1, 1, ofile);
+                // reset the buffer
+                bb.buffer = 0;
+                bb.count = 0;
+            }
+        }
     } while(ch != EOF);
     
     // check for any remaining bits and add 0's to the end to make a full byte
@@ -252,6 +269,14 @@ int main(int argc, char *argv[]){
     //close both files
     fclose(file);
     fclose(ofile);
+
+    // free the allocated memory
+    for (int i = 0; i < BYTESIZE; i++){
+        free(table[i]);
+    }
+    free(table);
+
+    printf("done.\n");
     
     return 0;
 }
