@@ -204,10 +204,12 @@ int main(int argc, char *argv[]){
 
     // find the first element that has a value
     // and assign it to the first node in the pq
+    int pqLength = 0;
     index = 0;
     do{
         if (freq[index] > 0){
             pq = newNode(index, freq[index]);
+            pqLength++;
             break;
         }
         index++;
@@ -216,9 +218,21 @@ int main(int argc, char *argv[]){
     // assign the rest of the chars to the pq
     while (index < BYTESIZE){
         index++;
-        if (freq[index] > 0) push(&pq, index, freq[index]);
+        if (freq[index] > 0){
+            push(&pq, index, freq[index]);
+            pqLength++;
+        }
     }
-    
+
+    // write the pq to a file
+    ofile = fopen("pq.bin", "wb");
+    Node *temp = pq;
+    while (temp->next){
+        fwrite(temp, sizeof(Node), 1, ofile);
+        temp = temp->next;
+    }
+    fclose(ofile);
+
     // convert the priority queue into a binary tree
     pq = listToTree(&pq);
 
