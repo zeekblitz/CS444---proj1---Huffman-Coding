@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-//#define BYTESIZE 256
+#define BYTESIZE 256
 
 typedef struct byteBuffer{
     unsigned char buffer;
@@ -165,7 +165,7 @@ void buildLookupTable(Node* root, int** table, int index, int row[], int top){
 int main(int argc, char *argv[]){
     FILE *file, *ofile;
     char *inFile, *outFile;
-    const int BYTESIZE = 256;
+    //const int BYTESIZE = 256;
 
     // defaults
     inFile = "completeShakespeare.txt";
