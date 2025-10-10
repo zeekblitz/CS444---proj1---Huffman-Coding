@@ -162,6 +162,43 @@ void buildLookupTable(Node* root, int** table, int index, int row[], int top){
     }
 }
 
+void writePQToFile(Node* head, char* ofile, int length){
+    FILE* outfile = fopen(ofile, "wb");
+
+    // store the length of the list to the first bytes of the file
+    fwrite(length, sizeof(int), 1, outfile);
+    //printf("length: %d\n", length);
+
+    Node *temp = head;
+    while (temp){
+        //printf("%c = %d\n", temp->data, temp->priority);
+        fwrite(&(temp->data), sizeof(int), 1, outfile);
+        fwrite(&(temp->priority), sizeof(int), 1, outfile);
+        temp = temp->next;
+    }
+    temp = NULL;
+    fclose(ofile);
+}
+
+Node* readPQFromFile(char* ifile){
+    FILE* inFile = fopen(ifile, "rb");
+    // get the length of the list from the first bytes of the file
+    int length;
+    fread(&length, sizeof(int), 1, inFile);
+    //printf("length: %d\n", length);
+
+    Node *new;
+    int index, frequency;
+    for (int i = 0; i < length; i++){
+        //printf("%c = %d\n", temp->data, temp->priority);
+        fread(&index, sizeof(int), 1, inFile);
+        fread(&frequency, sizeof(int), 1, inFile);
+        push(&new, index, frequency);
+    }
+    fclose(inFile);
+    return new;
+}
+
 int main(int argc, char *argv[]){
     FILE *file, *ofile;
     char *inFile, *outFile;
@@ -225,21 +262,10 @@ int main(int argc, char *argv[]){
     }
 
     // write the pq to a file
-    ofile = fopen("pq.bin", "wb");
-    Node *temp = pq;
-    while (temp->next){
-        fwrite(temp, sizeof(Node), 1, ofile);
-        temp = temp->next;
-    }
-    fclose(ofile);
+    writePQToFile(pq, outFile, pqLength);
 
     // convert the priority queue into a binary tree
     pq = listToTree(&pq);
-
-    // print the tree with the codes
-    
-    //int row[BYTESIZE], col[128];
-    //printTree(pq, row, col, 0);
 
     // build the lookup table to store the codes for each ascii char
     int** table = (int**)malloc(sizeof(int) * BYTESIZE);
@@ -248,7 +274,7 @@ int main(int argc, char *argv[]){
         buildLookupTable(pq, &table[i], i, row, 0);
     }
     
-    // open the file again
+    // open the text file again
     file = fopen(inFile, "r");
     
     // open a new file to write to in binary
@@ -290,7 +316,12 @@ int main(int argc, char *argv[]){
     }
     free(table);
 
-    printf("done.\n");
+    Node *temp = pq;
+    while (temp != NULL) {
+        Node* next = temp->next;
+        free(temp);
+        temp = next;
+    }
     
     return 0;
 }
