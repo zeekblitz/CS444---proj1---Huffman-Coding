@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-//#define BYTESIZE 256
+#define BYTESIZE 256
 
 typedef struct byteBuffer{
     unsigned char buffer;
@@ -165,7 +165,6 @@ void buildLookupTable(Node* root, int** table, int index, int row[], int top){
 int main(int argc, char *argv[]){
     FILE *file, *ofile;
     char *inFile, *outFile;
-    const int BYTESIZE = 256;
 
     // defaults
     inFile = "completeShakespeare.txt";
@@ -189,14 +188,13 @@ int main(int argc, char *argv[]){
 
     // loop through the file and increase the array at the same index of the chars ascii value
     int index = fgetc(file);
-    printf("reading in text file...\n");
     while (index != EOF) {
         freq[index]++;
         index = fgetc(file);
     }
 
     fclose(file);
-    printf("done.\n");
+    
     //for (int i = 0; i <= BYTESIZE; i++) if (freq[i] > 0) printf("%d = %d\n", i, freq[i]);
 
     // make a priority queue to hold and sort the chars
@@ -241,13 +239,12 @@ int main(int argc, char *argv[]){
     ofile = fopen(outFile, "wb");
 
     static int bin[100];
-    int ch;
     ByteBuffer bb;
-    printf("reading in file again, and writing out new file...\n");
-    do{
-        // read in each char
-        ch = fgetc(file);
 
+    // read in the first char
+    int ch;
+    ch = fgetc(file);
+    do{
         for (int i = 1; i < table[ch][0]; i++){
             // write those bits to the buffer
             bb.buffer = (bb.buffer << 1) | table[ch][i];
@@ -260,6 +257,8 @@ int main(int argc, char *argv[]){
                 bb.count = 0;
             }
         }
+        // read in the next char
+        ch = fgetc(file);
     } while(ch != EOF);
     
     // check for any remaining bits and add 0's to the end to make a full byte
@@ -271,12 +270,7 @@ int main(int argc, char *argv[]){
     fclose(ofile);
 
     // free the allocated memory
-    for (int i = 0; i < BYTESIZE; i++){
-        free(table[i]);
-    }
     free(table);
-
-    printf("done.\n");
     
     return 0;
 }
