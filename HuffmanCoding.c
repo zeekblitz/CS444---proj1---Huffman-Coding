@@ -3,6 +3,7 @@
 #include <string.h>
 
 #define BYTESIZE 256
+#define BYTESIZE 256
 
 typedef struct byteBuffer{
     unsigned char buffer;
@@ -42,14 +43,20 @@ Node* newNode(int d, int p){
 
 // Function to push according to priority
 void push(Node **head, int d, int p){
-    Node *start = (*head);
-
-    // Create new Node
+    // Create a new Node
     Node *temp = newNode(d, p);
+
+    // add the first node in the list
+    if ((*head) == NULL){
+        //printf("adding first node...\n");
+        (*head) = temp;
+        return;
+    }
 
     // Special Case: The head of list has lesser
     // priority than new node. So insert new
     // node before head node and change head node.
+    Node *start = (*head);
     if ((*head)->priority > p){
 
         // Insert New Node before head
@@ -57,7 +64,6 @@ void push(Node **head, int d, int p){
         (*head) = temp;
     }
     else{
-
         // Traverse the list and find a position to insert new node
         while (start->next && start->next->priority < p){
             start = start->next;
@@ -162,6 +168,44 @@ void buildLookupTable(Node* root, int** table, int index, int row[], int top){
     }
 }
 
+void writePQToFile(Node* head, char* ofile, int length){
+    FILE* outfile = fopen(ofile, "wb");
+
+    // store the length of the list to the first bytes of the file
+    fwrite(&length, sizeof(int), 1, outfile);
+    //printf("length: %d\n", length);
+
+    Node *temp = head;
+    while (temp){
+        //printf("%c = %d\n", temp->data, temp->priority);
+        fwrite(&(temp->data), sizeof(int), 1, outfile);
+        fwrite(&(temp->priority), sizeof(int), 1, outfile);
+        temp = temp->next;
+    }
+    //temp = NULL;
+    fclose(outfile);
+}
+
+Node* readPQFromFile(char* ifile){
+    FILE* inFile = fopen(ifile, "rb");
+    // get the length of the list from the first bytes of the file
+    int length;
+    fread(&length, sizeof(int), 1, inFile);
+    printf("length: %d\n", length);
+
+    // continue reading in the index and frequency pairs
+    Node *new = NULL;
+    int index, frequency;
+    for (int i = 1; i < length; i++){
+        fread(&index, sizeof(int), 1, inFile);
+        fread(&frequency, sizeof(int), 1, inFile);
+        printf("%c = %d\n", index, frequency);
+        push(&new, index, frequency);
+    }
+    fclose(inFile);
+    return new;
+}
+
 int main(int argc, char *argv[]){
     FILE *file, *ofile;
     char *inFile, *outFile;
@@ -198,32 +242,22 @@ int main(int argc, char *argv[]){
     //for (int i = 0; i <= BYTESIZE; i++) if (freq[i] > 0) printf("%d = %d\n", i, freq[i]);
 
     // make a priority queue to hold and sort the chars
-    Node *pq;
-
-    // find the first element that has a value
-    // and assign it to the first node in the pq
-    index = 0;
-    do{
-        if (freq[index] > 0){
-            pq = newNode(index, freq[index]);
-            break;
+    Node *pq = NULL;
+    int pqLength = 0;
+    for (int i = 0; i < BYTESIZE; i++){
+        if (freq[i] > 0){
+            push(&pq, i, freq[i]);
+            pqLength++;
         }
-        index++;
-    }while (index < BYTESIZE);
-
-    // assign the rest of the chars to the pq
-    while (index < BYTESIZE){
-        index++;
-        if (freq[index] > 0) push(&pq, index, freq[index]);
     }
-    
+
+    // write the pq to a file
+    //writePQToFile(pq, outFile, pqLength);
+
+    //Node* test = readPQFromFile(outFile);
+
     // convert the priority queue into a binary tree
     pq = listToTree(&pq);
-
-    // print the tree with the codes
-    
-    //int row[BYTESIZE], col[128];
-    //printTree(pq, row, col, 0);
 
     // build the lookup table to store the codes for each ascii char
     int** table = (int**)malloc(sizeof(int) * BYTESIZE);
@@ -232,11 +266,12 @@ int main(int argc, char *argv[]){
         buildLookupTable(pq, &table[i], i, row, 0);
     }
     
-    // open the file again
+    // open the text file again
     file = fopen(inFile, "r");
     
     // open a new file to write to in binary
     ofile = fopen(outFile, "wb");
+    fseek(ofile, 0, SEEK_END);
 
     static int bin[100];
     ByteBuffer bb;
