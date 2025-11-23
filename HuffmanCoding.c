@@ -3,7 +3,6 @@
 #include <string.h>
 
 #define BYTESIZE 256
-#define BYTESIZE 256
 
 typedef struct byteBuffer{
     unsigned char buffer;
@@ -208,22 +207,54 @@ Node* readPQFromFile(char* ifile){
 
 int main(int argc, char *argv[]){
     FILE *file, *ofile;
-    char *inFile, *outFile;
+    char inFile[128], outFile[128];
 
     // defaults
-    inFile = "completeShakespeare.txt";
-    outFile = "huffman.out";
+    //inFile = "completeShakespeare.txt";
+    //outFile = "huffman.out";
 
-    for (int i = 1; i < argc; i++){
-        if (strcmp(argv[i], "-i") == 0) inFile = argv[++i];
-        else if (strcmp(argv[i], "-o") == 0) outFile = argv[++i];
+    // test for file
+    if (argc < 2){
+        printf("ERROR: file required\n");
+        return 0;
+    }
+
+    // determine file type and encode/decode accordingly
+    char *sub = strrchr(argv[1], '.');
+    if (sub == NULL){
+        printf("ERROR: missing extension\n");
+        return 0;
+    }
+
+    char extension[5];
+    strcpy(extension, sub);
+    if (strcmp(extension, ".txt") == 0){
+        // encode the text file
+        strcpy(inFile, argv[1]);
+        // copy the input file name to the output file name and replace the extension
+        int length = sub - argv[1];
+        if (length > 128){
+            printf("ERROR: filename too long\n");
+            return 0;
+        }
+        strncpy(outFile, argv[1], length);
+        outFile[length] = '\0';
+        strcat(outFile, ".out");
+        printf("file = %s\n", outFile);
+    }
+    else if (strcmp(extension, ".out") == 0){
+        // decode the binary file
+    }
+    else{
+        printf("ERROR: invalid file type\n");
+        return 0;
     }
 
     // try to open an existing file to read in
     file = fopen(inFile, "r");
     if (!file){
         printf("%s does not exist.\n", inFile);
-        return -1;
+        return 0;
     }
 
     // create an int array of a bytesize (256) and initialize it with 0's
@@ -258,6 +289,10 @@ int main(int argc, char *argv[]){
 
     // convert the priority queue into a binary tree
     pq = listToTree(&pq);
+
+    // print the tree with the codes
+    //int row[BYTESIZE], col[128];
+    //printTree(pq, row, col, 0);
 
     // build the lookup table to store the codes for each ascii char
     int** table = (int**)malloc(sizeof(int) * BYTESIZE);
